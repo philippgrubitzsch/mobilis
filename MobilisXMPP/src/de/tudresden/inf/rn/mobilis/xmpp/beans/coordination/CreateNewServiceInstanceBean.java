@@ -20,7 +20,7 @@ public class CreateNewServiceInstanceBean extends XMPPBean {
 	public int serviceVersion = -1;
 	public int minVersion = -1;
 	public int maxVersion = -1;
-	//public String jidOfNewService;
+	public String jidOfNewService;
 	//public String answerID; // to ensure recieving the correct answer in later IQs (sendNewServiceInstance)
 	public String jidOfOriginalRequestor; //needed if a runtime forwards the clientrequest to the next runtime
 	
@@ -53,7 +53,7 @@ public class CreateNewServiceInstanceBean extends XMPPBean {
 	@Override
 	public CreateNewServiceInstanceBean clone() {
 		CreateNewServiceInstanceBean twin = new CreateNewServiceInstanceBean(serviceNamespace, servicePassword);		
-		//twin.jidOfNewService = this.jidOfNewService;
+		twin.jidOfNewService = this.jidOfNewService;
 		twin.jidOfOriginalRequestor = this.jidOfOriginalRequestor;
 		//twin.answerID = this.answerID;
 		twin.serviceVersion = this.serviceVersion;
@@ -76,8 +76,8 @@ public class CreateNewServiceInstanceBean extends XMPPBean {
 			sb.append("<serviceNamespace>").append(serviceNamespace).append("</serviceNamespace>");
 		if (this.servicePassword!=null)
 			sb.append("<servicePassword>").append(servicePassword).append("</servicePassword>");
-//		if (this.jidOfNewService!=null)
-//			sb.append("<jidOfNewService>").append(jidOfNewService).append("</jidOfNewService>");
+		if (this.jidOfNewService!=null)
+			sb.append("<jidOfNewService>").append(jidOfNewService).append("</jidOfNewService>");
 		if (this.serviceName!=null)
 			sb.append("<serviceName>").append(serviceName).append("</serviceName>");
 		if (this.serviceVersion!=-1)
@@ -110,8 +110,8 @@ public class CreateNewServiceInstanceBean extends XMPPBean {
 					this.jidOfOriginalRequestor = parser.nextText();
 //				} else if (tagName.equals("answerID")) {
 //					this.answerID = parser.nextText();
-//				} else if (tagName.equals("jidOfNewService")) {
-//					this.jidOfNewService = parser.nextText();	
+				} else if (tagName.equals("jidOfNewService")) {
+					this.jidOfNewService = parser.nextText();	
 				} else if (tagName.equals("serviceName")) {
 					this.serviceName = parser.nextText();	
 				} else if (tagName.equals("serviceVersion")) {
@@ -167,13 +167,13 @@ public class CreateNewServiceInstanceBean extends XMPPBean {
 		this.servicePassword = servicePassword;
 	}
 
-//	public String getJidOfNewService() {
-//		return jidOfNewService;
-//	}
-//
-//	public void setJidOfNewService(String jidOfNewService) {
-//		this.jidOfNewService = jidOfNewService;
-//	}
+	public String getJidOfNewService() {
+		return jidOfNewService;
+	}
+
+	public void setJidOfNewService(String jidOfNewService) {
+		this.jidOfNewService = jidOfNewService;
+	}
 
 	/**
 	 * @return the name of the service which should be created. 

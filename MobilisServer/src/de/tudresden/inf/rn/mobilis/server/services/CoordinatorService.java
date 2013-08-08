@@ -131,7 +131,8 @@ public class CoordinatorService extends MobilisService {
     		if (b instanceof CreateNewServiceInstanceBean) {
     			CreateNewServiceInstanceBean bb = (CreateNewServiceInstanceBean) b;    			
     			if (b.getType() == XMPPBean.TYPE_SET)
-    				this.inCreateServiceInstanceSet(bb);   				
+    				this.inCreateServiceInstanceSet(bb);   	
+    			if (b.getType() == XMPPBean.TYPE_RESULT); // Do nothing, just OK
     		} else if (b instanceof MobilisServiceDiscoveryBean) {
     			MobilisServiceDiscoveryBean bb = (MobilisServiceDiscoveryBean) b;    			
     			if (b.getType() == XMPPBean.TYPE_GET)
@@ -479,7 +480,7 @@ public class CoordinatorService extends MobilisService {
 		//Sending Response/error to the Requestor
 		beanAnswer.setTo(from); beanAnswer.setFrom(to);
 		beanAnswer.setId(bean.getId());
-		c.sendPacket(new BeanIQAdapter(beanAnswer));
+		//c.sendPacket(new BeanIQAdapter(beanAnswer));
 		
 		//create new Instance local or on remote Runtime
 		if(createAccepted){
@@ -494,10 +495,13 @@ public class CoordinatorService extends MobilisService {
 			// CoordinatorService#inCreateServiceInstanceSet: moved code to class ServiceContainer#startNewServiceInstance
 			SendNewServiceInstanceBean beanAnswer = new SendNewServiceInstanceBean();
 			// try to start a new instance of the service
+			String jidOfNewService = "";
+			int sversion = -1;
 			try {
 				MobilisService newService = serviceContainer.startNewServiceInstance(bean.serviceName);
 				newService.setName( bean.serviceName );
-				
+				jidOfNewService = newService.getAgent().getFullJid();
+				sversion = serviceContainer.getServiceVersion();
 				beanAnswer = new SendNewServiceInstanceBean(newService.getAgent().getFullJid(),
 						serviceContainer.getServiceVersion());
 			// exception was thrown, respond an error 
@@ -513,15 +517,24 @@ public class CoordinatorService extends MobilisService {
 			//if the requestor is still empty, the request was send by the real requesting client, else it was already forwarded
 			if(bean.jidOfOriginalRequestor != null){
 				beanAnswer.jidOfOriginalRequestor = bean.jidOfOriginalRequestor;
+				connection.sendPacket(new BeanIQAdapter(beanAnswer));
+			} else {
+				CreateNewServiceInstanceBean beanAnswer2 = new CreateNewServiceInstanceBean();
+				beanAnswer2.setFrom(bean.getTo());
+				beanAnswer2.setTo(bean.getFrom());
+				beanAnswer2.setJidOfNewService(jidOfNewService);
+				beanAnswer2.setServiceVersion(sversion);
+				beanAnswer2.setId(bean.getId());
+				connection.sendPacket(new BeanIQAdapter(beanAnswer2));
 			}
 			
-			connection.sendPacket(new BeanIQAdapter(beanAnswer));
+			
 			
 		} 
 		// try to start a new instance on a remote runtime by forwarding the initial Request to a Random Runtime that supports the requested Service
 		else {
 			CreateNewServiceInstanceBean createBean = bean.clone();
-			createBean.setId(bean.getId()+"b");
+			createBean.setId(bean.getId());
 			createBean.jidOfOriginalRequestor = bean.getFrom();
 			createBean.setFrom(bean.getTo());
 			createBean.setTo(loadBalancing.randomRuntimeForCreateInstance(remoteRuntimesSupportingService) + "/Coordinator");
@@ -535,14 +548,23 @@ public class CoordinatorService extends MobilisService {
 
 			
 			//create Answer IQ for original Client Requestor
-			SendNewServiceInstanceBean toOriginalRequestor = inBean.clone();
-			toOriginalRequestor.setFrom(inBean.getTo());
+//			SendNewServiceInstanceBean toOriginalRequestor = inBean.clone();
+//			toOriginalRequestor.setFrom(inBean.getTo());
+//			toOriginalRequestor.setTo(inBean.jidOfOriginalRequestor);
+			CreateNewServiceInstanceBean toOriginalRequestor = new CreateNewServiceInstanceBean();
+			toOriginalRequestor.setType(XMPPBean.TYPE_RESULT);
 			toOriginalRequestor.setTo(inBean.jidOfOriginalRequestor);
+			toOriginalRequestor.setServiceVersion(inBean.getServiceVersion());
+			toOriginalRequestor.setJidOfNewService(inBean.getJidOfNewService());
+			toOriginalRequestor.setFrom(inBean.getTo());
+			toOriginalRequestor.setId(inBean.getId());
+			
 			
 			//create Answer IQ for Remote Server (ok)
 			SendNewServiceInstanceBean toRemoteRuntime = new SendNewServiceInstanceBean();
-			toRemoteRuntime.setFrom(inBean.getId());
-			toRemoteRuntime.setTo(inBean.getTo());
+			toRemoteRuntime.setType(XMPPBean.TYPE_RESULT);
+			toRemoteRuntime.setFrom(inBean.getTo());
+			toRemoteRuntime.setTo(inBean.getFrom());
 		
 		
 		connection.sendPacket(new BeanIQAdapter(toOriginalRequestor));
